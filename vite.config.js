@@ -2,7 +2,12 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
+// Проект живёт на GitHub Pages по адресу /baby-log/, поэтому все пути собираются
+// от этого префикса. Для локальной разработки Vite сам подставит '/'.
+const base = process.env.VITE_BASE ?? '/baby-log/'
+
 export default defineConfig({
+  base,
   plugins: [
     react(),
     VitePWA({
@@ -15,8 +20,9 @@ export default defineConfig({
         description: 'Кормления, подгузники и сон — общий журнал для всей семьи',
         display: 'standalone',
         orientation: 'portrait',
-        start_url: '/',
-        scope: '/',
+        start_url: base,
+        scope: base,
+        id: base,
         background_color: '#10131A',
         theme_color: '#10131A',
         icons: [
@@ -27,7 +33,7 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,png,svg,ico,woff2}'],
-        navigateFallback: 'index.html',
+        navigateFallback: `${base}index.html`,
         cleanupOutdatedCaches: true,
         runtimeCaching: [
           {
