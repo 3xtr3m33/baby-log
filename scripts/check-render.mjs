@@ -3,10 +3,12 @@
 // белым экраном. Запуск: node scripts/check-render.mjs
 import { build } from 'esbuild'
 import { writeFileSync, unlinkSync } from 'node:fs'
-import { pathToFileURL } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 
-const entry = new URL('./_render-entry.jsx', import.meta.url)
-const out = new URL('./_render-out.mjs', import.meta.url)
+// fileURLToPath, а не pathname: на Linux у пути нет диска, и срезание
+// ведущего слэша превращает абсолютный путь в относительный.
+const entry = fileURLToPath(new URL('./_render-entry.jsx', import.meta.url))
+const out = fileURLToPath(new URL('./_render-out.mjs', import.meta.url))
 
 writeFileSync(
   entry,
@@ -59,17 +61,17 @@ export const cases = {
 )
 
 await build({
-  entryPoints: [entry.pathname.replace(/^\//, '')],
+  entryPoints: [entry],
   bundle: true,
   format: 'esm',
   platform: 'node',
   jsx: 'automatic',
-  outfile: out.pathname.replace(/^\//, ''),
+  outfile: out,
   external: ['react', 'react-dom', 'react-dom/server'],
   logLevel: 'error',
 })
 
-const { cases } = await import(pathToFileURL(out.pathname.replace(/^\//, '')).href)
+const { cases } = await import(pathToFileURL(out).href)
 
 let failed = 0
 for (const [name, run] of Object.entries(cases)) {
