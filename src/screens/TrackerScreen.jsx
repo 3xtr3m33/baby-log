@@ -10,7 +10,15 @@ import { TYPE, TYPE_META } from '../lib/tokens.js'
 import { fmtClock, fmtDurShort, fmtDur } from '../lib/time.js'
 import * as sync from '../lib/sync.js'
 
-export default function TrackerScreen({ t, themeName, onToggleTheme, inviteCode, onSignOut }) {
+export default function TrackerScreen({
+  t,
+  themeName,
+  onToggleTheme,
+  inviteCode,
+  onSignOut,
+  localOnly = false,
+  onWipe,
+}) {
   const now = useNow(15000)
   const meta = useMeta()
   const status = useSyncStatus()
@@ -274,36 +282,51 @@ export default function TrackerScreen({ t, themeName, onToggleTheme, inviteCode,
               <span style={{ ...TYPE.body, color: t.text }}>{meta.myName || '—'}</span>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <span style={{ ...TYPE.label, color: t.dim }}>Код приглашения</span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span style={{ ...TYPE.h2, letterSpacing: 4, color: t.text }}>
-                  {inviteCode || '······'}
-                </span>
-                <SmallBtn t={t} onClick={copyInvite} disabled={!inviteCode}>
-                  {copied ? 'Скопировано' : 'Скопировать'}
-                </SmallBtn>
+            {!localOnly && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <span style={{ ...TYPE.label, color: t.dim }}>Код приглашения</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ ...TYPE.h2, letterSpacing: 4, color: t.text }}>
+                    {inviteCode || '······'}
+                  </span>
+                  <SmallBtn t={t} onClick={copyInvite} disabled={!inviteCode}>
+                    {copied ? 'Скопировано' : 'Скопировать'}
+                  </SmallBtn>
+                </div>
               </div>
-            </div>
+            )}
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <span style={{ ...TYPE.label, color: t.dim }}>Синхронизация</span>
+              <span style={{ ...TYPE.label, color: t.dim }}>
+                {localOnly ? 'Хранение' : 'Синхронизация'}
+              </span>
               <span style={{ ...TYPE.body, color: t.dim }}>
-                {status.pendingCount > 0
-                  ? `${status.pendingCount} записей ждут отправки`
-                  : 'всё отправлено'}
-                {status.lastError ? ` · ошибка: ${status.lastError}` : ''}
+                {localOnly
+                  ? 'Записи лежат только на этом устройстве. Общий доступ для второго телефона включим позже.'
+                  : `${
+                      status.pendingCount > 0
+                        ? `${status.pendingCount} записей ждут отправки`
+                        : 'всё отправлено'
+                    }${status.lastError ? ` · ошибка: ${status.lastError}` : ''}`}
               </span>
             </div>
 
             <div style={{ display: 'flex', gap: 10 }}>
-              <SmallBtn t={t} onClick={() => sync.syncNow()}>
-                Синхронизировать
-              </SmallBtn>
+              {localOnly ? (
+                <SmallBtn t={t} tone="danger" onClick={onWipe}>
+                  Стереть записи
+                </SmallBtn>
+              ) : (
+                <SmallBtn t={t} onClick={() => sync.syncNow()}>
+                  Синхронизировать
+                </SmallBtn>
+              )}
               <div style={{ flex: 1 }} />
-              <SmallBtn t={t} tone="danger" onClick={onSignOut}>
-                Выйти
-              </SmallBtn>
+              {!localOnly && (
+                <SmallBtn t={t} tone="danger" onClick={onSignOut}>
+                  Выйти
+                </SmallBtn>
+              )}
               <SmallBtn t={t} tone="ghost" onClick={() => setSettings(false)}>
                 Закрыть
               </SmallBtn>

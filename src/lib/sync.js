@@ -3,6 +3,7 @@
 // сюда попадает только доставка.
 import { supabase } from './supabase.js'
 import * as db from './db.js'
+import { LOCAL_ONLY } from './mode.js'
 
 const PULL_INTERVAL = 60000
 
@@ -59,6 +60,7 @@ export function fromRow(r) {
 }
 
 export async function flush() {
+  if (LOCAL_ONLY) return
   if (flushing || !familyId) return
   const rows = db.pendingEvents()
   if (!rows.length) return
@@ -81,6 +83,7 @@ export async function flush() {
 }
 
 export async function pull() {
+  if (LOCAL_ONLY) return
   if (!familyId || !navigator.onLine) return
   const since = db.getMeta().lastPulledAt || '1970-01-01T00:00:00.000Z'
   setStatus({ syncing: true })
@@ -150,6 +153,7 @@ const onVisible = () => {
 }
 
 export function start(family) {
+  if (LOCAL_ONLY) return
   familyId = family
   if (!started) {
     started = true

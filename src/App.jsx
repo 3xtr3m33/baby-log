@@ -3,6 +3,7 @@ import { supabase } from './lib/supabase.js'
 import * as db from './lib/db.js'
 import * as sync from './lib/sync.js'
 import { THEMES, TYPE } from './lib/tokens.js'
+import { LOCAL_ONLY, LOCAL_FAMILY_ID } from './lib/mode.js'
 import AuthScreen from './screens/AuthScreen.jsx'
 import FamilyScreen from './screens/FamilyScreen.jsx'
 import TrackerScreen from './screens/TrackerScreen.jsx'
@@ -67,6 +68,23 @@ export default function App() {
 
   useEffect(() => {
     let alive = true
+
+    // Локальный режим: ни входа, ни сети — сразу к трекеру.
+    if (LOCAL_ONLY) {
+      ;(async () => {
+        await db.load()
+        if (!alive) return
+        if (!db.getMeta().familyId) {
+          await db.setMeta({ familyId: LOCAL_FAMILY_ID, myName: db.getMeta().myName || 'Я' })
+        }
+        if (!alive) return
+        setStage('tracker')
+      })()
+      return () => {
+        alive = false
+      }
+    }
+
     ;(async () => {
       await db.load()
       const { data } = await supabase.auth.getSession()
@@ -107,6 +125,12 @@ export default function App() {
     setStage('auth')
   }, [])
 
+  // Локальный режим: «выйти» некуда, но стереть накопленное на устройстве надо уметь.
+  const wipeLocal = useCallback(async () => {
+    await db.resetAll()
+    await db.setMeta({ familyId: LOCAL_FAMILY_ID, myName: 'Я' })
+  }, [])
+
   const onFamilyReady = useCallback(
     async (name) => {
       await db.setMeta({ myName: name })
@@ -134,7 +158,7 @@ export default function App() {
     )
   }
 
-  if (stage === 'auth' || !session) return <AuthScreen t={t} />
+  if (!LOCAL_ONLY && (stage === 'auth' || !session)) return <AuthScreen t={t} />
 
   if (stage === 'family') return <FamilyScreen t={t} onReady={onFamilyReady} onSignOut={signOut} />
 
@@ -145,6 +169,8 @@ export default function App() {
       onToggleTheme={toggleTheme}
       inviteCode={inviteCode}
       onSignOut={signOut}
+      localOnly={LOCAL_ONLY}
+      onWipe={wipeLocal}
     />
   )
 }
