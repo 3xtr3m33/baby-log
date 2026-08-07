@@ -6,7 +6,7 @@ import { THEMES, TYPE } from './lib/tokens.js'
 import { LOCAL_ONLY, LOCAL_FAMILY_ID } from './lib/mode.js'
 import AuthScreen from './screens/AuthScreen.jsx'
 import FamilyScreen from './screens/FamilyScreen.jsx'
-import TrackerScreen from './screens/TrackerScreen.jsx'
+import MainShell from './screens/MainShell.jsx'
 
 const THEME_KEY = 'baby-log-theme' // для событий localStorage не используется, только для темы
 
@@ -14,9 +14,14 @@ export default function App() {
   const [stage, setStage] = useState('loading') // loading | auth | family | tracker
   const [session, setSession] = useState(null)
   const [inviteCode, setInviteCode] = useState(null)
-  const [themeName, setThemeName] = useState(
-    () => localStorage.getItem(THEME_KEY) || 'dark'
-  )
+  // Пока тему не выбрали руками — идём за системной: ночные кормления
+  // при светлом экране бьют по глазам, а днём тёмный выцветает на солнце.
+  const [themeName, setThemeName] = useState(() => {
+    const saved = localStorage.getItem(THEME_KEY)
+    if (saved) return saved
+    const light = window.matchMedia?.('(prefers-color-scheme: light)').matches
+    return light ? 'light' : 'dark'
+  })
 
   const t = THEMES[themeName] || THEMES.dark
 
@@ -163,7 +168,7 @@ export default function App() {
   if (stage === 'family') return <FamilyScreen t={t} onReady={onFamilyReady} onSignOut={signOut} />
 
   return (
-    <TrackerScreen
+    <MainShell
       t={t}
       themeName={themeName}
       onToggleTheme={toggleTheme}

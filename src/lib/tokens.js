@@ -119,7 +119,36 @@ export const link = (t) => ({
   padding: 6,
 })
 
+// Сторона груди — отдельный список: педиатры спрашивают, с какой начинали,
+// а родителям в четыре утра надо помнить, какая была прошлый раз.
+export const SIDES = [
+  { value: 'left', label: 'Левая', short: 'Л' },
+  { value: 'right', label: 'Правая', short: 'П' },
+  { value: 'both', label: 'Обе', short: 'ЛП' },
+]
+
+export function sideLabel(side) {
+  return SIDES.find((s) => s.value === side)?.label || ''
+}
+
+export function sideShort(side) {
+  return SIDES.find((s) => s.value === side)?.short || ''
+}
+
+// Быстрые объёмы бутылочки, мл — чтобы не крутить numpad каждый раз.
+export const ML_PRESETS = [30, 60, 90, 120, 150, 180]
+
 export function kindLabel(type, kind) {
   const found = (KINDS[type] || []).find((k) => k.value === kind)
   return found ? found.label : ''
+}
+
+// Строка деталей записи для ленты: «Бутылочка · 120 мл», «Грудь · Левая».
+export function detailLine(e) {
+  const parts = []
+  const kind = kindLabel(e.type, e.kind)
+  if (kind) parts.push(kind)
+  if (e.side) parts.push(sideLabel(e.side))
+  if (e.amount) parts.push(`${e.amount} мл`)
+  return parts.join(' · ')
 }

@@ -53,13 +53,24 @@ export function useEvents() {
   )
 
   const addEvent = useCallback(
-    async ({ type, startedAt = Date.now(), kind = null, endedAt = null }) => {
+    async ({
+      type,
+      startedAt = Date.now(),
+      kind = null,
+      endedAt = null,
+      side = null,
+      amount = null,
+      note = null,
+    }) => {
       const event = base({
         id: crypto.randomUUID(),
         type,
         started_at: startedAt,
         ended_at: type === 'sleep' ? endedAt : null,
         kind,
+        side,
+        amount,
+        note,
       })
       await db.putLocal([event])
       sync.flush()

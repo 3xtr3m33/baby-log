@@ -23,10 +23,18 @@ create table public.events (
   started_at timestamptz not null,
   ended_at timestamptz,
   kind text,
+  side text check (side in ('left','right','both')),
+  amount integer check (amount >= 0 and amount <= 1000),
+  note text,
   by_name text,
   deleted boolean not null default false,
   updated_at timestamptz not null default now()
 );
+
+-- Если таблица уже создана прежней версией схемы — догоняем колонки.
+alter table public.events add column if not exists side text;
+alter table public.events add column if not exists amount integer;
+alter table public.events add column if not exists note text;
 
 create index events_family_time on public.events (family_id, started_at desc);
 create index events_family_updated on public.events (family_id, updated_at desc);

@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { TYPE, TYPE_META, kindLabel } from '../lib/tokens.js'
+import { TYPE, TYPE_META, detailLine } from '../lib/tokens.js'
 import { dayStart, fmtClock, fmtDayTitle, fmtDur } from '../lib/time.js'
 
 // Лента событий, сгруппированная по дням. Тап по строке — правка времени.
@@ -51,7 +51,7 @@ export default function History({ t, events, now, onEdit }) {
             {list.map((e, i) => {
               const meta = TYPE_META[e.type]
               const color = t.accent[meta.color]
-              const kind = kindLabel(e.type, e.kind)
+              const details = detailLine(e)
               const running = e.type === 'sleep' && e.ended_at == null
               const duration =
                 e.type === 'sleep' ? fmtDur((e.ended_at == null ? now : e.ended_at) - e.started_at) : null
@@ -83,7 +83,9 @@ export default function History({ t, events, now, onEdit }) {
                   <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
                     <span style={{ ...TYPE.body, fontWeight: 500, color: t.text }}>
                       {meta.title}
-                      {kind ? <span style={{ color: t.dim, fontWeight: 400 }}> · {kind}</span> : null}
+                      {details ? (
+                        <span style={{ color: t.dim, fontWeight: 400 }}> · {details}</span>
+                      ) : null}
                     </span>
                     <span
                       style={{
@@ -95,7 +97,7 @@ export default function History({ t, events, now, onEdit }) {
                       }}
                     >
                       {duration ? `${duration}${running ? ' · идёт' : ''}` : ' '}
-                      {e.by_name ? `${duration ? ' · ' : ''}${e.by_name}` : ''}
+                      {[e.note || '', e.by_name || ''].filter(Boolean).map((s) => ` · ${s}`).join('')}
                     </span>
                   </span>
 
