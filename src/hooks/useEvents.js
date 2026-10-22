@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import * as db from '../lib/db.js'
 import * as sync from '../lib/sync.js'
+import * as notify from '../lib/notify.js'
+import { normalizeSchedule } from '../lib/schedule.js'
 
 // Тикающие часы для счётчиков «сколько прошло».
 export function useNow(interval = 30000) {
@@ -108,4 +110,20 @@ export function useEvents() {
   )
 
   return { events, activeSleep, addEvent, updateEvent, removeEvent, wakeUp, lastOf }
+}
+
+// График кормлений: хранится в meta (локально) и в строке семьи (на сервере).
+export function useSchedule() {
+  const meta = useMeta()
+  const schedule = useMemo(() => normalizeSchedule(meta.schedule), [meta.schedule])
+
+  const saveSchedule = useCallback(async (patch) => {
+    const next = normalizeSchedule({ ...db.getMeta().schedule, ...patch, updated_at: Date.now() })
+    await db.setMeta({ schedule: next, schedulePending: true })
+    sync.pushSchedule()
+    notify.reschedule(next)
+    return next
+  }, [])
+
+  return { schedule, saveSchedule }
 }

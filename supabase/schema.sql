@@ -90,3 +90,18 @@ for each row execute function public.touch_updated_at();
 grant execute on function public.my_family(), public.create_family(text), public.join_family(text,text) to authenticated;
 
 alter publication supabase_realtime add table public.events;
+
+-- ── График кормлений (22.10.2026) ───────────────────────────────────────────
+-- Общий на семью: { times: ["06:00", ...], toleranceMin, remindBeforeMin, updated_at }.
+-- Прогнать этот блок отдельно, если основная схема уже стоит.
+alter table public.families add column if not exists schedule jsonb;
+
+-- Читать строку своей семьи уже разрешает политика families_mine выше.
+create or replace function public.set_schedule(p_schedule jsonb)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if public.my_family() is null then raise exception 'NO_FAMILY'; end if;
+  update public.families set schedule = p_schedule where id = public.my_family();
+end $$;
+
+grant execute on function public.set_schedule(jsonb) to authenticated;

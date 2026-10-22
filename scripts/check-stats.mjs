@@ -3,6 +3,7 @@
 // выглядят правдоподобно. Поэтому считаем руками и сверяем.
 import { summaryFor, dailySeries, predictNext, intervals, median, isNightSleep, streakDays } from '../src/lib/stats.js'
 import { toCsv } from '../src/lib/export.js'
+import { matchDay, nextFeeding, adherence, generateTimes, normalizeTimes } from '../src/lib/schedule.js'
 import { DAY, HOUR, MINUTE, dayStart } from '../src/lib/time.js'
 
 let failed = 0
@@ -110,3 +111,39 @@ eq('точка с запятой как разделитель', csv.split('\n')
 
 console.log(failed ? `\n${failed} проверок упало` : '\nвсе проверки прошли')
 process.exit(failed ? 1 : 0)
+// ── график: план против факта ──────────────────────────────────────────────
+eq('нормализация времён', normalizeTimes(['9:00', '06:00', 'мусор', '06:00', '23:59']), ['06:00', '09:00', '23:59'])
+eq('каждые 3 ч с 06:00 ×4', generateTimes('06:00', 3, 4), ['06:00', '09:00', '12:00', '15:00'])
+eq('через полночь', generateTimes('21:00', 3, 3), ['00:00', '03:00', '21:00'])
+
+const sched = { times: ['03:00', '06:00', '09:00', '12:00', '15:00'], toleranceMin: 15 }
+const feedsDay = [
+  ev({ type: 'feed', started_at: at(3, 5) }), // вовремя (+5)
+  ev({ type: 'feed', started_at: at(6, 40) }), // позже (+40)
+  ev({ type: 'feed', started_at: at(8, 20) }), // раньше (−40), окно 9:00 начинается с 7:30
+  ev({ type: 'feed', started_at: at(8, 50) }), // второе в окне 9:00 — вне графика
+]
+const m = matchDay(sched, feedsDay, noon, at(12, 30))
+eq('статусы слотов', m.slots.map((x) => x.status), ['ontime', 'late', 'early', 'overdue', 'upcoming'])
+eq('отклонения, мин', m.slots.slice(0, 3).map((x) => x.deltaMs / MINUTE), [5, 40, -40])
+eq('вне графика', m.extra.length, 1)
+
+const m2 = matchDay(sched, feedsDay, noon, at(14, 0))
+eq('12:00 без факта после окна = пропущено', m2.slots[3].status, 'missed')
+
+const nf = nextFeeding(sched, feedsDay, at(12, 30))
+eq('следующее — опаздывающее 12:00', nf && nf.plan, at(12))
+
+const a = adherence(sched, feedsDay, 1, at(16, 0))
+// 15:00 в 16:00 ещё в своём окне (до 21:00) — в итог не идёт
+eq('соблюдение за сутки', [a.ontime, a.late, a.early, a.missed, a.total], [1, 1, 1, 1, 4])
+const a7 = adherence(sched, feedsDay, 7, at(16, 0))
+eq('пустые дни до дневника не считаются пропусками', a7.total, 4)
+
+// график из заметки: 07:50 на 07:00 — позже, 09:53 на 09:30 — позже, 17:07 на 17:00 — вовремя
+const liam = { times: ['00:00', '03:30', '07:00', '09:30', '12:00', '14:30', '17:00', '20:00'], toleranceMin: 15 }
+const liamFeeds = [ev({ type: 'feed', started_at: at(7, 50) }), ev({ type: 'feed', started_at: at(9, 53) }), ev({ type: 'feed', started_at: at(12) }), ev({ type: 'feed', started_at: at(14, 59) }), ev({ type: 'feed', started_at: at(17, 7) })]
+const lm = matchDay(liam, liamFeeds, noon, at(19, 15))
+eq('заметка: статусы', lm.slots.map((x) => x.status), ['missed', 'missed', 'late', 'late', 'ontime', 'late', 'ontime', 'upcoming'])
+
+

@@ -3,6 +3,7 @@ import { ok } from '../lib/haptics.js'
 
 const TABS = [
   { key: 'today', label: 'Сегодня' },
+  { key: 'schedule', label: 'График' },
   { key: 'history', label: 'История' },
   { key: 'stats', label: 'Статистика' },
 ]

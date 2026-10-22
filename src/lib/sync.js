@@ -113,9 +113,46 @@ export async function pull() {
   }
 }
 
+// График кормлений живёт в строке семьи. Побеждает версия с бо́льшим
+// updated_at; локальная правка, ещё не отправленная, сервером не затирается.
+export async function pushSchedule() {
+  if (LOCAL_ONLY || !familyId || !navigator.onLine) return
+  const meta = db.getMeta()
+  if (!meta.schedulePending || !meta.schedule) return
+  try {
+    const { error } = await supabase.rpc('set_schedule', { p_schedule: meta.schedule })
+    if (error) throw error
+    await db.setMeta({ schedulePending: false })
+  } catch (err) {
+    setStatus({ lastError: err?.message || String(err) })
+  }
+}
+
+export async function pullSchedule() {
+  if (LOCAL_ONLY || !familyId || !navigator.onLine) return
+  try {
+    const { data, error } = await supabase
+      .from('families')
+      .select('schedule')
+      .eq('id', familyId)
+      .maybeSingle()
+    if (error) throw error
+    const remote = data?.schedule
+    const local = db.getMeta().schedule
+    if (!remote || db.getMeta().schedulePending) return
+    if (!local || (remote.updated_at || 0) > (local.updated_at || 0)) {
+      await db.setMeta({ schedule: remote })
+    }
+  } catch (err) {
+    setStatus({ lastError: err?.message || String(err) })
+  }
+}
+
 export async function syncNow() {
   await flush()
+  await pushSchedule()
   await pull()
+  await pullSchedule()
 }
 
 function openChannel() {

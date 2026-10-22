@@ -15,6 +15,7 @@ writeFileSync(
   `
 import { renderToStaticMarkup } from 'react-dom/server'
 import StatsScreen from '../src/screens/StatsScreen.jsx'
+import ScheduleScreen from '../src/screens/ScheduleScreen.jsx'
 import HistoryScreen from '../src/screens/HistoryScreen.jsx'
 import TimeSheet from '../src/components/TimeSheet.jsx'
 import TabBar from '../src/components/TabBar.jsx'
@@ -35,7 +36,11 @@ const events = [
   ev({ type: 'sleep', started_at: now - HOUR, ended_at: null }),
 ]
 
+const sched = { times: ['06:00', '09:00', '12:00', '15:00', '18:00', '21:00'], toleranceMin: 15, remindBeforeMin: 10 }
+const noop = () => {}
 export const cases = {
+  ScheduleScreen: () => renderToStaticMarkup(<ScheduleScreen t={t} events={events} now={now} schedule={sched} onSave={noop} onEditEvent={noop} onAddAt={noop} />),
+  'ScheduleScreen (редактор)': () => renderToStaticMarkup(<ScheduleScreen t={t} events={[]} now={now} schedule={{ times: [], toleranceMin: 15, remindBeforeMin: 10 }} onSave={noop} onEditEvent={noop} onAddAt={noop} />),
   StatsScreen: () => renderToStaticMarkup(<StatsScreen t={t} events={events} now={now} />),
   'StatsScreen (пусто)': () => renderToStaticMarkup(<StatsScreen t={t} events={[]} now={now} />),
   HistoryScreen: () =>

@@ -1,0 +1,10 @@
+{
+  "appId": "com.cjfamily.babylog",
+  "appName": "Дневник ухода",
+  "webDir": "dist",
+  "plugins": {
+    "LocalNotifications": {
+      "iconColor": "#F5A524"
+    }
+  }
+}

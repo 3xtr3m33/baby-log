@@ -1,18 +1,20 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import TrackerScreen from './TrackerScreen.jsx'
 import HistoryScreen from './HistoryScreen.jsx'
 import StatsScreen from './StatsScreen.jsx'
+import ScheduleScreen from './ScheduleScreen.jsx'
 import TabBar from '../components/TabBar.jsx'
 import TimeSheet from '../components/TimeSheet.jsx'
 import Toast from '../components/Toast.jsx'
 import SmallBtn from '../components/SmallBtn.jsx'
-import { useEvents, useMeta, useNow, useSyncStatus } from '../hooks/useEvents.js'
+import { useEvents, useMeta, useNow, useSchedule, useSyncStatus } from '../hooks/useEvents.js'
 import { TYPE, TYPE_META } from '../lib/tokens.js'
 import { fmtClock, fmtDayTitle } from '../lib/time.js'
 import { todaySummary } from '../lib/stats.js'
 import { summaryText } from '../lib/export.js'
 import * as sync from '../lib/sync.js'
 import { ok } from '../lib/haptics.js'
+import * as notify from '../lib/notify.js'
 
 // Каркас приложения: шапка, вкладки, общие диалоги. Экраны внутри занимаются
 // только своим содержимым и ничего не знают про навигацию.
@@ -29,6 +31,13 @@ export default function MainShell({
   const meta = useMeta()
   const status = useSyncStatus()
   const { events, addEvent, updateEvent, removeEvent } = useEvents()
+  const { schedule, saveSchedule } = useSchedule()
+
+  // Напоминания перевыставляем при старте и при любой смене графика —
+  // в том числе пришедшей со второго телефона.
+  useEffect(() => {
+    notify.reschedule(schedule)
+  }, [schedule])
 
   const [tab, setTab] = useState('today')
   const [sheet, setSheet] = useState(null)
@@ -144,7 +153,19 @@ export default function MainShell({
       </div>
 
       {tab === 'today' && (
-        <TrackerScreen t={t} onOpenSheet={setSheet} setToast={setToast} />
+        <TrackerScreen t={t} schedule={schedule} onOpenSheet={setSheet} setToast={setToast} />
+      )}
+
+      {tab === 'schedule' && (
+        <ScheduleScreen
+          t={t}
+          events={events}
+          now={now}
+          schedule={schedule}
+          onSave={saveSchedule}
+          onEditEvent={(e) => setSheet({ mode: 'edit', type: e.type, id: e.id, draft: e })}
+          onAddAt={(plan) => setSheet({ mode: 'add', type: 'feed', draft: { started_at: Math.min(plan, Date.now()) } })}
+        />
       )}
 
       {tab === 'history' && (

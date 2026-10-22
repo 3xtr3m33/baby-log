@@ -7,13 +7,15 @@ import { useEvents, useNow } from '../hooks/useEvents.js'
 import { TYPE } from '../lib/tokens.js'
 import { fmtClock, fmtDurShort, fmtDur, MINUTE } from '../lib/time.js'
 import { todaySummary, predictNext } from '../lib/stats.js'
+import { hasSchedule, nextFeeding } from '../lib/schedule.js'
+import { NextCard } from './ScheduleScreen.jsx'
 import { ok, done, warn } from '../lib/haptics.js'
 
 // Двойное нажатие в темноте — обычное дело. Повтор того же события в этом
 // окне не пишем молча, а переспрашиваем одной кнопкой в тосте.
 const DOUBLE_TAP_MS = 3 * MINUTE
 
-export default function TrackerScreen({ t, onOpenSheet, setToast }) {
+export default function TrackerScreen({ t, schedule, onOpenSheet, setToast }) {
   const now = useNow(15000)
   const { events, activeSleep, addEvent, updateEvent, removeEvent, wakeUp, lastOf } = useEvents()
   const [confirming, setConfirming] = useState(null)
@@ -30,6 +32,7 @@ export default function TrackerScreen({ t, onOpenSheet, setToast }) {
 
   const summary = useMemo(() => todaySummary(events, now), [events, now])
   const nextFeed = useMemo(() => predictNext(events, 'feed', now), [events, now])
+  const planned = useMemo(() => nextFeeding(schedule, events, now), [schedule, events, now])
 
   const write = async (type) => {
     const event = await addEvent({ type })
@@ -114,8 +117,9 @@ export default function TrackerScreen({ t, onOpenSheet, setToast }) {
         />
       </div>
 
-      {/* прогноз: медиана последних перерывов, а не среднее */}
-      {nextFeed && (
+      {/* есть график — показываем его; нет — прогноз по медиане перерывов */}
+      {hasSchedule(schedule) && planned && <NextCard t={t} next={planned} now={now} />}
+      {!hasSchedule(schedule) && nextFeed && (
         <div
           style={{
             display: 'flex',

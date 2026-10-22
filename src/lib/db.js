@@ -6,7 +6,15 @@ const K_EVENTS = 'events'
 const K_PENDING = 'pending'
 const K_META = 'meta'
 
-const EMPTY_META = { familyId: null, myName: null, lastPulledAt: null }
+// schedule — график кормлений (общий на семью), schedulePending — правка графика
+// ещё не уехала на сервер.
+const EMPTY_META = {
+  familyId: null,
+  myName: null,
+  lastPulledAt: null,
+  schedule: null,
+  schedulePending: false,
+}
 
 let events = []
 let pending = []

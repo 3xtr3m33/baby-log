@@ -4,13 +4,18 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 // Проект живёт на GitHub Pages по адресу /baby-log/, поэтому все пути собираются
 // от этого префикса. Для локальной разработки Vite сам подставит '/'.
-const base = process.env.VITE_BASE ?? '/baby-log/'
-
-export default defineConfig({
+// Сборка для магазинов (`vite build --mode native`) кладёт файлы внутрь
+// приложения: пути относительные, service worker не нужен — офлайн и так есть.
+export default defineConfig(({ mode }) => {
+  const native = mode === 'native'
+  const base = native ? './' : process.env.VITE_BASE ?? '/baby-log/'
+  return {
   base,
   plugins: [
     react(),
     VitePWA({
+      // в нативной сборке модуль регистрации остаётся, но ничего не делает
+      disable: native,
       registerType: 'autoUpdate',
       includeAssets: ['apple-touch-icon-180x180.png', 'favicon.png'],
       manifest: {
@@ -54,4 +59,5 @@ export default defineConfig({
       },
     }),
   ],
+}
 })
